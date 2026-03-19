@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WaniKani Radical Color</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 12px;
+        min-width: 240px;
+      }
+
+      h1 {
+        font-size: 14px;
+        margin: 0 0 10px 0;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      #status {
+        margin-top: 10px;
+        color: #2e7d32;
+        font-size: 12px;
+        min-height: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Radical header color</h1>
+    <div class="row">
+      <input id="colorPicker" type="color" />
+      <input id="hexInput" type="text" maxlength="7" placeholder="#ff5b5b" />
+    </div>
+    <div class="buttons">
+      <button id="saveBtn" type="button">Save</button>
+      <button id="resetBtn" type="button">Reset</button>
+    </div>
+    <div id="status"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
