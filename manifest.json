@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WaniKani Radical Header Color",
   "version": "1.0.0",
-  "description": "Changes and customizes the .character-header--radical color on WaniKani.",
+  "description": "Changes and customizes the .character-header--radical background style on WaniKani.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.wanikani.com/*"],
   "action": {
