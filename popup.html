@@ -3,54 +3,312 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WaniKani Radical Color</title>
+    <title>WaniKani Radical Header Style</title>
     <style>
+      :root {
+        --surface: #0f172a;
+        --surface-soft: #1e293b;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #7c3aed;
+        --accent-2: #ec4899;
+        --error: #ef4444;
+        --ok: #22c55e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: Arial, sans-serif;
+        margin: 0;
+        min-width: 350px;
+        font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at top right, #312e81, #0f172a 55%);
+      }
+
+      .panel {
+        padding: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 14px;
         margin: 12px;
-        min-width: 240px;
+        background: rgba(15, 23, 42, 0.82);
+        backdrop-filter: blur(8px);
       }
 
-      h1 {
-        font-size: 14px;
-        margin: 0 0 10px 0;
+      .title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
       }
 
-      .row {
+      .subtitle {
+        margin: 4px 0 12px 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .preview {
+        width: 100%;
+        height: 48px;
+        border-radius: 10px;
+        border: 1px solid rgba(226, 232, 240, 0.18);
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        letter-spacing: 0.2px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        color: #ffffff;
+      }
+
+      .section {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 10px;
+        background: rgba(30, 41, 59, 0.45);
+      }
+
+      .section-title {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .toggle-row {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+
+      .toggle-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+      }
+
+      .mode-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         gap: 8px;
+      }
+
+      .mode-option {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.4);
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .mode-option input {
+        margin: 0;
+      }
+
+      .field {
         margin-bottom: 10px;
       }
 
-      .buttons {
-        display: flex;
+      .field:last-child {
+        margin-bottom: 0;
+      }
+
+      .field label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .color-row {
+        display: grid;
+        grid-template-columns: 48px 1fr;
         gap: 8px;
       }
 
-      button {
+      .color-row input[type="color"] {
+        width: 48px;
+        height: 36px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0;
+        background: transparent;
         cursor: pointer;
+      }
+
+      .color-row input[type="text"],
+      select,
+      input[type="number"] {
+        width: 100%;
+        height: 36px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 8px;
+        padding: 0 10px;
+        color: var(--text);
+        background: rgba(15, 23, 42, 0.7);
+        font-size: 13px;
+      }
+
+      .direction-row {
+        display: grid;
+        grid-template-columns: 1fr 72px;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .preset-row {
+        display: grid;
+        grid-template-columns: 1fr 92px;
+        gap: 8px;
+      }
+
+      #applyPresetBtn {
+        height: 36px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 8px;
+        background: rgba(139, 92, 246, 0.22);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      .buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      button {
+        height: 36px;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        color: #ffffff;
+        font-weight: 700;
+      }
+
+      #saveBtn {
+        background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      }
+
+      #resetBtn {
+        background: rgba(148, 163, 184, 0.22);
       }
 
       #status {
         margin-top: 10px;
-        color: #2e7d32;
-        font-size: 12px;
         min-height: 16px;
+        font-size: 12px;
+      }
+
+      .hidden {
+        display: none;
       }
     </style>
   </head>
   <body>
-    <h1>Radical header color</h1>
-    <div class="row">
-      <input id="colorPicker" type="color" />
-      <input id="hexInput" type="text" maxlength="7" placeholder="#ff5b5b" />
+    <div class="panel">
+      <h1 class="title">Radical Header Style</h1>
+      <p class="subtitle">Switch between solid color and gradient.</p>
+
+      <div id="preview" class="preview">Live preview</div>
+
+      <div class="section">
+        <p class="section-title">General</p>
+        <label class="toggle-row" for="enabledToggle">
+          <span>Extension enabled</span>
+          <input id="enabledToggle" type="checkbox" />
+        </label>
+        <div class="field">
+          <label for="presetSelect">Preset</label>
+          <div class="preset-row">
+            <select id="presetSelect"></select>
+            <button id="applyPresetBtn" type="button">Apply</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <p class="section-title">Mode</p>
+        <div class="mode-grid">
+          <label class="mode-option">
+            <input type="radio" name="mode" value="solid" />
+            <span>Solid</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="gradient" />
+            <span>Gradient</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="solidSection" class="section">
+        <p class="section-title">Solid color</p>
+        <div class="field">
+          <label for="solidColorHex">Color</label>
+          <div class="color-row">
+            <input id="solidColorPicker" type="color" />
+            <input id="solidColorHex" type="text" maxlength="7" placeholder="#ff5b5b" />
+          </div>
+        </div>
+      </div>
+
+      <div id="gradientSection" class="section hidden">
+        <p class="section-title">Gradient settings</p>
+        <div class="field">
+          <label for="gradientVariation">Variation</label>
+          <select id="gradientVariation">
+            <option value="linear">Linear</option>
+            <option value="radial">Radial</option>
+            <option value="conic">Conic</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="directionRange">Direction (degrees)</label>
+          <div class="direction-row">
+            <input id="directionRange" type="range" min="0" max="359" step="1" />
+            <input id="directionNumber" type="number" min="0" max="359" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="gradientStartHex">Start color</label>
+          <div class="color-row">
+            <input id="gradientStartPicker" type="color" />
+            <input id="gradientStartHex" type="text" maxlength="7" placeholder="#ff5b5b" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="gradientEndHex">End color</label>
+          <div class="color-row">
+            <input id="gradientEndPicker" type="color" />
+            <input id="gradientEndHex" type="text" maxlength="7" placeholder="#ffa1cf" />
+          </div>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="saveBtn" type="button">Save</button>
+        <button id="resetBtn" type="button">Reset</button>
+      </div>
+      <div id="status"></div>
     </div>
-    <div class="buttons">
-      <button id="saveBtn" type="button">Save</button>
-      <button id="resetBtn" type="button">Reset</button>
-    </div>
-    <div id="status"></div>
+
     <script src="popup.js"></script>
   </body>
 </html>

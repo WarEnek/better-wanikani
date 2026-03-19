@@ -1,12 +1,12 @@
 # better-wanikani
 
-Chrome extension that customizes the color of `.character-header--radical` on WaniKani lesson pages.
+Chrome extension that customizes the background style of `.character-header--radical` across all WaniKani pages.
 
 ## Files
 
 - `manifest.json` - extension configuration (Manifest V3)
-- `content.js` - applies the configured color on WaniKani lessons pages
-- `popup.html` / `popup.js` - popup UI for color configuration
+- `content.js` - applies configured solid or gradient background styles
+- `popup.html` / `popup.js` - styled popup UI with presets and enable/disable toggle
 
 ## Load extension locally
 
@@ -17,11 +17,16 @@ Chrome extension that customizes the color of `.character-header--radical` on Wa
 
 ## Usage
 
-1. Open a WaniKani lesson page, for example:
-   `https://www.wanikani.com/subject-lessons/4509644722880337842/1`
+1. Open any WaniKani page:
+   `https://www.wanikani.com/`
 2. Click the extension icon.
-3. Choose a color and click **Save**.
-4. The extension updates `.character-header--radical` color on the page.
+3. Use **Extension enabled** toggle to enable or disable styling.
+4. Optionally choose a preset and click **Apply**.
+5. Choose mode:
+   - **Solid** for one background color
+   - **Gradient** for gradient variation, direction, and colors
+6. Click **Save**.
+7. The extension updates `.character-header--radical` background style on matching elements site-wide.
 
 ## Diagnostics logs
 
