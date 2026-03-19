@@ -3,8 +3,88 @@ const SETTINGS_KEY = "radicalHeaderStyleSettings";
 const LEGACY_COLOR_KEY = "radicalHeaderColor";
 const VALID_MODES = new Set(["solid", "gradient"]);
 const VALID_VARIATIONS = new Set(["linear", "radial", "conic"]);
+const CUSTOM_PRESET_ID = "custom";
+
+const PRESETS = [
+  {
+    id: "default-solid",
+    name: "Default Solid",
+    style: {
+      mode: "solid",
+      solidColor: "#ff5b5b"
+    }
+  },
+  {
+    id: "mint-solid",
+    name: "Mint Solid",
+    style: {
+      mode: "solid",
+      solidColor: "#14b8a6"
+    }
+  },
+  {
+    id: "sunset-linear",
+    name: "Sunset Linear",
+    style: {
+      mode: "gradient",
+      gradient: {
+        variation: "linear",
+        direction: 125,
+        startColor: "#ff5f6d",
+        endColor: "#ffc371"
+      }
+    }
+  },
+  {
+    id: "ocean-linear",
+    name: "Ocean Linear",
+    style: {
+      mode: "gradient",
+      gradient: {
+        variation: "linear",
+        direction: 140,
+        startColor: "#2193b0",
+        endColor: "#6dd5ed"
+      }
+    }
+  },
+  {
+    id: "violet-radial",
+    name: "Violet Radial",
+    style: {
+      mode: "gradient",
+      gradient: {
+        variation: "radial",
+        direction: 45,
+        startColor: "#8e2de2",
+        endColor: "#4a00e0"
+      }
+    }
+  },
+  {
+    id: "neon-conic",
+    name: "Neon Conic",
+    style: {
+      mode: "gradient",
+      gradient: {
+        variation: "conic",
+        direction: 90,
+        startColor: "#f72585",
+        endColor: "#4cc9f0"
+      }
+    }
+  }
+];
+
+const PRESET_ID_SET = new Set([CUSTOM_PRESET_ID]);
+for (const preset of PRESETS) {
+  PRESET_ID_SET.add(preset.id);
+}
 
 const modeInputs = document.querySelectorAll('input[name="mode"]');
+const enabledToggle = document.getElementById("enabledToggle");
+const presetSelect = document.getElementById("presetSelect");
+const applyPresetBtn = document.getElementById("applyPresetBtn");
 const solidSection = document.getElementById("solidSection");
 const gradientSection = document.getElementById("gradientSection");
 const solidColorPicker = document.getElementById("solidColorPicker");
@@ -25,6 +105,8 @@ let lastSavedSettings = createDefaultSettings();
 
 function createDefaultSettings() {
   return {
+    enabled: true,
+    presetId: CUSTOM_PRESET_ID,
     mode: "solid",
     solidColor: "#ff5b5b",
     gradient: {
@@ -93,6 +175,14 @@ function sanitizeSettings(rawSettings, legacyColor) {
     return nextSettings;
   }
 
+  if (typeof rawSettings.enabled === "boolean") {
+    nextSettings.enabled = rawSettings.enabled;
+  }
+
+  if (typeof rawSettings.presetId === "string" && PRESET_ID_SET.has(rawSettings.presetId)) {
+    nextSettings.presetId = rawSettings.presetId;
+  }
+
   if (VALID_MODES.has(rawSettings.mode)) {
     nextSettings.mode = rawSettings.mode;
   }
@@ -124,6 +214,15 @@ function sanitizeSettings(rawSettings, legacyColor) {
   }
 
   return nextSettings;
+}
+
+function getPresetById(presetId) {
+  for (const preset of PRESETS) {
+    if (preset.id === presetId) {
+      return preset;
+    }
+  }
+  return null;
 }
 
 function angleToRadialPosition(angle) {
@@ -183,6 +282,85 @@ function buildBackgroundStyle(settings) {
   };
 }
 
+function areStyleSettingsEqual(first, second) {
+  if (first.mode !== second.mode) {
+    return false;
+  }
+  if (first.solidColor !== second.solidColor) {
+    return false;
+  }
+  if (first.gradient.variation !== second.gradient.variation) {
+    return false;
+  }
+  if (first.gradient.direction !== second.gradient.direction) {
+    return false;
+  }
+  if (first.gradient.startColor !== second.gradient.startColor) {
+    return false;
+  }
+  if (first.gradient.endColor !== second.gradient.endColor) {
+    return false;
+  }
+  return true;
+}
+
+function buildPresetSettings(presetId, preserveEnabled) {
+  const defaults = createDefaultSettings();
+  const preset = getPresetById(presetId);
+  if (!preset) {
+    defaults.enabled = preserveEnabled;
+    return defaults;
+  }
+
+  const merged = createDefaultSettings();
+  merged.enabled = preserveEnabled;
+  merged.presetId = preset.id;
+  merged.mode = preset.style.mode;
+
+  if (preset.style.solidColor) {
+    merged.solidColor = preset.style.solidColor;
+  }
+
+  if (preset.style.gradient) {
+    merged.gradient.variation = preset.style.gradient.variation;
+    merged.gradient.direction = preset.style.gradient.direction;
+    merged.gradient.startColor = preset.style.gradient.startColor;
+    merged.gradient.endColor = preset.style.gradient.endColor;
+  }
+
+  return sanitizeSettings(merged, null);
+}
+
+function resolvePresetIdForSettings(settings) {
+  if (PRESET_ID_SET.has(settings.presetId) && settings.presetId !== CUSTOM_PRESET_ID) {
+    return settings.presetId;
+  }
+
+  for (const preset of PRESETS) {
+    const presetSettings = buildPresetSettings(preset.id, settings.enabled);
+    if (areStyleSettingsEqual(settings, presetSettings)) {
+      return preset.id;
+    }
+  }
+  return CUSTOM_PRESET_ID;
+}
+
+function populatePresetSelect() {
+  presetSelect.innerHTML = "";
+
+  const customOption = document.createElement("option");
+  customOption.value = CUSTOM_PRESET_ID;
+  customOption.textContent = "Custom";
+  presetSelect.appendChild(customOption);
+
+  for (const preset of PRESETS) {
+    const option = document.createElement("option");
+    option.value = preset.id;
+    option.textContent = preset.name;
+    presetSelect.appendChild(option);
+  }
+}
+
 function getSelectedMode() {
   for (const input of modeInputs) {
     if (input.checked) {
@@ -207,7 +385,16 @@ function syncDirectionInputs(value) {
   directionNumber.value = String(normalized);
 }
 
+function markPresetCustom() {
+  if (presetSelect.value === CUSTOM_PRESET_ID) {
+    return;
+  }
+  presetSelect.value = CUSTOM_PRESET_ID;
+  logInfo("Switched preset to custom due to manual edit.");
+}
+
 function renderSettings(settings) {
+  enabledToggle.checked = settings.enabled;
   setMode(settings.mode);
   solidColorPicker.value = settings.solidColor;
   solidColorHex.value = settings.solidColor;
@@ -217,12 +404,21 @@ function renderSettings(settings) {
   gradientStartHex.value = settings.gradient.startColor;
   gradientEndPicker.value = settings.gradient.endColor;
   gradientEndHex.value = settings.gradient.endColor;
+
+  const resolvedPresetId = resolvePresetIdForSettings(settings);
+  presetSelect.value = resolvedPresetId;
   updatePreview();
 }
 
 function readSettingsFromForm(strictValidation) {
   const mode = getSelectedMode();
   const nextSettings = createDefaultSettings();
+  nextSettings.enabled = enabledToggle.checked;
+  nextSettings.presetId = presetSelect.value;
+
+  if (!PRESET_ID_SET.has(nextSettings.presetId)) {
+    nextSettings.presetId = CUSTOM_PRESET_ID;
+  }
 
   if (VALID_MODES.has(mode)) {
     nextSettings.mode = mode;
@@ -273,15 +469,27 @@ function readSettingsFromForm(strictValidation) {
 
 function updatePreview() {
   const settings = readSettingsFromForm(false);
+
+  if (!settings.enabled) {
+    preview.style.background = "repeating-linear-gradient(135deg, #475569 0 8px, #334155 8px 16px)";
+    preview.style.backgroundColor = "#334155";
+    preview.style.backgroundImage =
+      "repeating-linear-gradient(135deg, #475569 0 8px, #334155 8px 16px)";
+    preview.textContent = "Extension disabled";
+    return;
+  }
+
   const style = buildBackgroundStyle(settings);
   preview.style.background = style.background;
   preview.style.backgroundColor = style.backgroundColor;
   preview.style.backgroundImage = style.backgroundImage;
+  preview.textContent = "Live preview";
 }
 
 function bindColorPair(pickerElement, textElement) {
   pickerElement.addEventListener("input", () => {
     textElement.value = pickerElement.value.toLowerCase();
+    markPresetCustom();
     updatePreview();
   });
 
@@ -290,6 +498,7 @@ function bindColorPair(pickerElement, textElement) {
     if (isValidHexColor(candidate)) {
       pickerElement.value = candidate.toLowerCase();
     }
+    markPresetCustom();
     updatePreview();
   });
 }
@@ -306,6 +515,7 @@ async function loadSettings() {
       stored[SETTINGS_KEY],
       stored[LEGACY_COLOR_KEY]
     );
+    normalizedSettings.presetId = resolvePresetIdForSettings(normalizedSettings);
     lastSavedSettings = normalizedSettings;
     renderSettings(normalizedSettings);
     logInfo("Loaded style settings from storage", {
@@ -322,21 +532,52 @@ async function loadSettings() {
 for (const input of modeInputs) {
   input.addEventListener("change", () => {
     setMode(getSelectedMode());
+    markPresetCustom();
     updatePreview();
   });
 }
 
+enabledToggle.addEventListener("change", () => {
+  logInfo("Enable toggle changed.", { enabled: enabledToggle.checked });
+  updatePreview();
+});
+
+presetSelect.addEventListener("change", () => {
+  if (presetSelect.value === CUSTOM_PRESET_ID) {
+    setStatus("Custom mode selected.", false);
+    return;
+  }
+  setStatus("Preset selected. Click Apply.", false);
+});
+
+applyPresetBtn.addEventListener("click", () => {
+  const selectedPresetId = presetSelect.value;
+  if (selectedPresetId === CUSTOM_PRESET_ID) {
+    setStatus("Select a preset before applying.", true);
+    return;
+  }
+
+  const nextSettings = buildPresetSettings(selectedPresetId, enabledToggle.checked);
+  nextSettings.presetId = selectedPresetId;
+  renderSettings(nextSettings);
+  setStatus("Preset applied to form. Click Save.", false);
+  logInfo("Preset applied", { presetId: selectedPresetId, nextSettings });
+});
+
 gradientVariation.addEventListener("change", () => {
+  markPresetCustom();
   updatePreview();
 });
 
 directionRange.addEventListener("input", () => {
   syncDirectionInputs(directionRange.value);
+  markPresetCustom();
   updatePreview();
 });
 
 directionNumber.addEventListener("input", () => {
   syncDirectionInputs(directionNumber.value);
+  markPresetCustom();
   updatePreview();
 });
 
@@ -348,6 +589,7 @@ saveBtn.addEventListener("click", async () => {
   try {
     const settingsToSave = readSettingsFromForm(true);
     await saveSettings(settingsToSave);
+    settingsToSave.presetId = resolvePresetIdForSettings(settingsToSave);
     lastSavedSettings = settingsToSave;
     renderSettings(settingsToSave);
     setStatus("Style saved.", false);
@@ -372,4 +614,5 @@ resetBtn.addEventListener("click", async () => {
   }
 });
 
+populatePresetSelect();
 loadSettings();

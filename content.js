@@ -3,12 +3,13 @@
   const SETTINGS_KEY = "radicalHeaderStyleSettings";
   const LEGACY_COLOR_KEY = "radicalHeaderColor";
   const TARGET_SELECTOR = ".character-header--radical";
-  const TARGET_PATH_PREFIX = "/subject-lessons/";
   const VALID_MODES = new Set(["solid", "gradient"]);
   const VALID_VARIATIONS = new Set(["linear", "radial", "conic"]);
 
   function createDefaultSettings() {
     return {
+      enabled: true,
+      presetId: "custom",
       mode: "solid",
       solidColor: "#ff5b5b",
       gradient: {
@@ -74,6 +75,14 @@
 
     if (!rawSettings || typeof rawSettings !== "object") {
       return nextSettings;
+    }
+
+    if (typeof rawSettings.enabled === "boolean") {
+      nextSettings.enabled = rawSettings.enabled;
+    }
+
+    if (typeof rawSettings.presetId === "string" && rawSettings.presetId.length > 0) {
+      nextSettings.presetId = rawSettings.presetId;
     }
 
     if (VALID_MODES.has(rawSettings.mode)) {
@@ -168,8 +177,37 @@
     };
   }
 
-  function isTargetPage() {
-    return window.location.pathname.startsWith(TARGET_PATH_PREFIX);
+  function getTargetElements() {
+    return Array.from(document.querySelectorAll(TARGET_SELECTOR));
+  }
+
+  function clearBackgroundStyles(elements) {
+    for (const element of elements) {
+      element.style.removeProperty("background");
+      element.style.removeProperty("background-color");
+      element.style.removeProperty("background-image");
+    }
+  }
+
+  function mutationContainsTargetNode(mutationList) {
+    for (const mutation of mutationList) {
+      if (mutation.type !== "childList" || mutation.addedNodes.length === 0) {
+        continue;
+      }
+
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          continue;
+        }
+        if (node.matches && node.matches(TARGET_SELECTOR)) {
+          return true;
+        }
+        if (node.querySelector && node.querySelector(TARGET_SELECTOR)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   async function getConfiguredSettings() {
@@ -186,26 +224,37 @@
   }
 
   function applyBackgroundToElements(settings) {
-    const elements = document.querySelectorAll(TARGET_SELECTOR);
+    const elements = getTargetElements();
     logInfo("Elements lookup result", {
       selector: TARGET_SELECTOR,
-      count: elements.length
+      count: elements.length,
+      enabled: settings.enabled
     });
 
     if (elements.length === 0) {
-      logWarn("No target elements found for selector.");
+      logInfo("No target elements found yet.");
+      return;
+    }
+
+    if (!settings.enabled) {
+      clearBackgroundStyles(elements);
+      logInfo("Extension disabled, removed custom background styles.", {
+        count: elements.length
+      });
       return;
     }
 
     const style = buildBackgroundStyle(settings);
-    elements.forEach((element) => {
+    for (const element of elements) {
       element.style.setProperty("background", style.background, "important");
       element.style.setProperty("background-color", style.backgroundColor, "important");
       element.style.setProperty("background-image", style.backgroundImage, "important");
-    });
+    }
 
     logInfo("Applied background style to elements", {
       count: elements.length,
+      enabled: settings.enabled,
+      presetId: settings.presetId,
       mode: settings.mode,
       variation: settings.gradient.variation,
       direction: settings.gradient.direction,
@@ -226,20 +275,12 @@
 
   function observeDomChanges() {
     const observer = new MutationObserver((mutationList) => {
-      let shouldReapply = false;
-
-      for (const mutation of mutationList) {
-        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-          shouldReapply = true;
-          break;
-        }
-      }
-
-      if (!shouldReapply) {
+      const hasTargetInMutation = mutationContainsTargetNode(mutationList);
+      if (!hasTargetInMutation) {
         return;
       }
 
-      logInfo("DOM mutation detected, reapplying background style.");
+      logInfo("Target mutation detected, reapplying background style.");
       applyBackgroundToElements(currentSettings);
     });
 
@@ -271,13 +312,7 @@
 
   async function init() {
     logInfo("Content script loaded.", { url: window.location.href });
-
-    if (!isTargetPage()) {
-      logWarn("Current page is not a target WaniKani lessons page.");
-      return;
-    }
-
-    logInfo("Target page confirmed. Initializing background styling logic.");
+    logInfo("WaniKani page detected. Initializing background styling logic.");
     await refreshSettingsAndApply();
     observeDomChanges();
     observeStorageChanges();

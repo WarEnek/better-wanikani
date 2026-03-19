@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WaniKani Radical Header Color",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Changes and customizes the .character-header--radical background style on WaniKani.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.wanikani.com/*"],
@@ -11,7 +11,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://www.wanikani.com/subject-lessons/*"],
+      "matches": ["https://www.wanikani.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

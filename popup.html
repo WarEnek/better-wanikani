@@ -78,6 +78,20 @@
         color: var(--muted);
       }
 
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+
+      .toggle-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+      }
+
       .mode-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -152,6 +166,23 @@
         align-items: center;
       }
 
+      .preset-row {
+        display: grid;
+        grid-template-columns: 1fr 92px;
+        gap: 8px;
+      }
+
+      #applyPresetBtn {
+        height: 36px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        border-radius: 8px;
+        background: rgba(139, 92, 246, 0.22);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
       input[type="range"] {
         width: 100%;
       }
@@ -197,6 +228,21 @@
       <p class="subtitle">Switch between solid color and gradient.</p>
 
       <div id="preview" class="preview">Live preview</div>
+
+      <div class="section">
+        <p class="section-title">General</p>
+        <label class="toggle-row" for="enabledToggle">
+          <span>Extension enabled</span>
+          <input id="enabledToggle" type="checkbox" />
+        </label>
+        <div class="field">
+          <label for="presetSelect">Preset</label>
+          <div class="preset-row">
+            <select id="presetSelect"></select>
+            <button id="applyPresetBtn" type="button">Apply</button>
+          </div>
+        </div>
+      </div>
 
       <div class="section">
         <p class="section-title">Mode</p>
