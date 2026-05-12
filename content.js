@@ -5,18 +5,32 @@
   const TARGET_SELECTOR = ".character-header--radical";
   const VALID_MODES = new Set(["solid", "gradient"]);
   const VALID_VARIATIONS = new Set(["linear", "radial", "conic"]);
+  const TARGET_TEXT_SELECTOR = ".character-header__meaning";
+  const APPLY_RETRY_DELAY_MS = 80;
+  const RADICAL_DEFAULT_SOLID_COLOR = "#00aaff";
+  const RADICAL_DEFAULT_GRADIENT_START = "#00aaff";
+  const RADICAL_DEFAULT_GRADIENT_END = "#0093dd";
+  const RADICAL_ORIGINAL_BACKGROUND_COLOR = "rgb(0, 170, 255)";
+  const RADICAL_ORIGINAL_GRADIENT_IMAGE =
+    "linear-gradient(rgb(0, 170, 255), rgb(0, 147, 221))";
+  const RADICAL_ORIGINAL_TEXT_SHADOW = "rgb(0, 147, 221) 2px 2px 0px";
+
+  let pendingApplyRaf = 0;
+  let pendingApplyTimeout = 0;
+  let lastScheduledReason = "initial";
 
   function createDefaultSettings() {
     return {
       enabled: true,
       presetId: "custom",
-      mode: "solid",
-      solidColor: "#ff5b5b",
+      mode: "gradient",
+      solidColor: RADICAL_DEFAULT_SOLID_COLOR,
       gradient: {
         variation: "linear",
-        direction: 90,
-        startColor: "#ff5b5b",
-        endColor: "#ffa1cf"
+        direction: 180,
+        startColor: RADICAL_DEFAULT_GRADIENT_START,
+        endColor: RADICAL_DEFAULT_GRADIENT_END,
+        textShadow: RADICAL_ORIGINAL_TEXT_SHADOW
       }
     };
   }
@@ -151,7 +165,8 @@
       return {
         background: solidColor,
         backgroundColor: solidColor,
-        backgroundImage: "none"
+        backgroundImage: "none",
+        textShadow: "none"
       };
     }
 
@@ -159,10 +174,19 @@
     const direction = normalizeDirection(settings.gradient.direction, 90);
     const startColor = settings.gradient.startColor;
     const endColor = settings.gradient.endColor;
+    const useOriginalRadicalGradient =
+      variation === "linear" &&
+      direction === 180 &&
+      startColor === RADICAL_DEFAULT_GRADIENT_START &&
+      endColor === RADICAL_DEFAULT_GRADIENT_END;
 
     let backgroundImage = "none";
     if (variation === "linear") {
-      backgroundImage = `linear-gradient(${direction}deg, ${startColor}, ${endColor})`;
+      if (useOriginalRadicalGradient) {
+        backgroundImage = RADICAL_ORIGINAL_GRADIENT_IMAGE;
+      } else {
+        backgroundImage = `linear-gradient(${direction}deg, ${startColor}, ${endColor})`;
+      }
     } else if (variation === "radial") {
       const radialPosition = angleToRadialPosition(direction);
       backgroundImage = `radial-gradient(circle at ${radialPosition}, ${startColor}, ${endColor})`;
@@ -172,8 +196,11 @@
 
     return {
       background: backgroundImage,
-      backgroundColor: startColor,
-      backgroundImage
+      backgroundColor: useOriginalRadicalGradient
+        ? RADICAL_ORIGINAL_BACKGROUND_COLOR
+        : startColor,
+      backgroundImage,
+      textShadow: RADICAL_ORIGINAL_TEXT_SHADOW
     };
   }
 
@@ -186,23 +213,119 @@
       element.style.removeProperty("background");
       element.style.removeProperty("background-color");
       element.style.removeProperty("background-image");
+      element.style.removeProperty("text-shadow");
+
+      const meaningElement = element.querySelector(TARGET_TEXT_SELECTOR);
+      if (meaningElement) {
+        meaningElement.style.removeProperty("text-shadow");
+      }
     }
+  }
+
+  function logTargetComputedStyles(elements, stage) {
+    const first = elements[0];
+    if (!first) {
+      return;
+    }
+    const firstMeaningElement = first.querySelector(TARGET_TEXT_SELECTOR);
+    const firstMeaningTextShadow = firstMeaningElement
+      ? firstMeaningElement.style.textShadow
+      : "";
+    const computedFirstMeaningTextShadow = firstMeaningElement
+      ? getComputedStyle(firstMeaningElement).textShadow
+      : "not-found";
+
+    logInfo("Target style snapshot", {
+      stage,
+      className: first.className,
+      inline: {
+        background: first.style.background,
+        backgroundColor: first.style.backgroundColor,
+        backgroundImage: first.style.backgroundImage,
+        textShadow: first.style.textShadow,
+        meaningTextShadow: firstMeaningTextShadow
+      },
+      computed: {
+        textShadow: getComputedStyle(first).textShadow,
+        backgroundImage: getComputedStyle(first).backgroundImage,
+        meaningTextShadow: computedFirstMeaningTextShadow
+      }
+    });
+  }
+
+  function applyMeaningTextShadowOverride(element, shouldSuppressMeaningShadow) {
+    const meaningElement = element.querySelector(TARGET_TEXT_SELECTOR);
+    if (!meaningElement) {
+      return;
+    }
+
+    if (shouldSuppressMeaningShadow) {
+      meaningElement.style.setProperty("text-shadow", "none", "important");
+      return;
+    }
+
+    meaningElement.style.removeProperty("text-shadow");
+  }
+
+  function scheduleReapply(reason) {
+    lastScheduledReason = reason || "unspecified";
+
+    if (document.visibilityState === "hidden") {
+      return;
+    }
+
+    if (!pendingApplyRaf) {
+      pendingApplyRaf = requestAnimationFrame(() => {
+        pendingApplyRaf = 0;
+        logInfo("Applying style in animation frame.", {
+          reason: lastScheduledReason
+        });
+        applyBackgroundToElements(currentSettings);
+      });
+    }
+
+    if (pendingApplyTimeout) {
+      clearTimeout(pendingApplyTimeout);
+    }
+    pendingApplyTimeout = setTimeout(() => {
+      pendingApplyTimeout = 0;
+      logInfo("Applying style in delayed fallback.", {
+        reason: lastScheduledReason,
+        delayMs: APPLY_RETRY_DELAY_MS
+      });
+      applyBackgroundToElements(currentSettings);
+    }, APPLY_RETRY_DELAY_MS);
   }
 
   function mutationContainsTargetNode(mutationList) {
     for (const mutation of mutationList) {
-      if (mutation.type !== "childList" || mutation.addedNodes.length === 0) {
+      if (mutation.type === "childList") {
+        if (mutation.addedNodes.length === 0) {
+          continue;
+        }
+
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== Node.ELEMENT_NODE) {
+            continue;
+          }
+          if (node.matches && node.matches(TARGET_SELECTOR)) {
+            return true;
+          }
+          if (node.querySelector && node.querySelector(TARGET_SELECTOR)) {
+            return true;
+          }
+        }
         continue;
       }
 
-      for (const node of mutation.addedNodes) {
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          continue;
-        }
-        if (node.matches && node.matches(TARGET_SELECTOR)) {
-          return true;
-        }
-        if (node.querySelector && node.querySelector(TARGET_SELECTOR)) {
+      if (mutation.type === "attributes") {
+        const targetNode = mutation.target;
+        if (
+          targetNode &&
+          targetNode.nodeType === Node.ELEMENT_NODE &&
+          targetNode.matches &&
+          targetNode.matches(TARGET_SELECTOR)
+        ) {
           return true;
         }
       }
@@ -245,11 +368,16 @@
     }
 
     const style = buildBackgroundStyle(settings);
+    const shouldSuppressMeaningShadow = style.textShadow !== "none";
+    logTargetComputedStyles(elements, "before");
     for (const element of elements) {
       element.style.setProperty("background", style.background, "important");
       element.style.setProperty("background-color", style.backgroundColor, "important");
       element.style.setProperty("background-image", style.backgroundImage, "important");
+      element.style.setProperty("text-shadow", style.textShadow, "important");
+      applyMeaningTextShadowOverride(element, shouldSuppressMeaningShadow);
     }
+    logTargetComputedStyles(elements, "after");
 
     logInfo("Applied background style to elements", {
       count: elements.length,
@@ -280,12 +408,14 @@
         return;
       }
 
-      logInfo("Target mutation detected, reapplying background style.");
-      applyBackgroundToElements(currentSettings);
+      logInfo("Target mutation detected, scheduling background reapply.");
+      scheduleReapply("mutation observer");
     });
 
     observer.observe(document.body, {
       childList: true,
+      attributes: true,
+      attributeFilter: ["class", "style"],
       subtree: true
     });
 
@@ -314,6 +444,7 @@
     logInfo("Content script loaded.", { url: window.location.href });
     logInfo("WaniKani page detected. Initializing background styling logic.");
     await refreshSettingsAndApply();
+    scheduleReapply("initial delayed stabilization");
     observeDomChanges();
     observeStorageChanges();
   }
